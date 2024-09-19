@@ -1,47 +1,51 @@
+"""
+Ingestión de datos - Reporte de clusteres
+-----------------------------------------------------------------------------------------
+
+Construya un dataframe de Pandas a partir del archivo 'clusters_report.txt', teniendo en
+cuenta que los nombres de las columnas deben ser en minusculas, reemplazando los espacios
+por guiones bajos; y que las palabras clave deben estar separadas por coma y con un solo 
+espacio entre palabra y palabra.
+
+
+"""
 import re
 import pandas as pd
 
+def title_format(header):
+    return header.lower().replace(" ", "_")
+
 def ingest_data():
-    # Leer el archivo y procesar las líneas
+
     with open("clusters_report.txt", "r") as file:
         lineas = file.readlines()
 
-    # Procesar los títulos combinando las dos primeras líneas
-    titulos_completos = []
-    for idx in range(2):  # Solo para las dos primeras líneas
-        titulos_completos.append(re.sub(r"\s{2,}", "-", lineas[idx]).strip().split("-"))
+    title1 = re.sub(r"\s{2,}", "-", lineas[0]).strip().split("-")
+    title2 = re.sub(r"\s{2,}", "-", lineas[1]).strip().split("-")
+    title1.pop()
+    title2.pop(0)
+    titles = [title1[0], title1[1] + " " + title2[0], title1[2] + " " + title2[1], title1[3]]
 
-    # Ajustar las posiciones de los títulos
-    titulos_completos[0].pop()
-    titulos_completos[1].pop(0)
+    data = {title_format(title): [] for title in titles}
 
-    # Unir los títulos correspondientes
-    titulos = [
-        titulos_completos[0][0], 
-        f"{titulos_completos[0][1]} {titulos_completos[1][0]}",
-        f"{titulos_completos[0][2]} {titulos_completos[1][1]}",
-        titulos_completos[0][3]
-    ]
-
-    # Inicializar el diccionario de datos
-    data = {titulo.lower().replace(" ", "_"): [] for titulo in titulos}
-
-    # Procesar las líneas de datos
     for linea in lineas[2:]:
-        fragmentos = re.sub(r"\s{2,}", ".", linea).strip().split(".")
-        fragmentos = list(filter(None, fragmentos))  # Eliminar entradas vacías
+        linea = re.sub(r"\s{2,}", ".", linea).strip().split(".")
+        linea = list(filter(lambda x: x, linea))
 
-        if fragmentos and fragmentos[0].isnumeric():
-            data["cluster"].append(int(fragmentos[0]))
-            data["cantidad_de_palabras_clave"].append(int(fragmentos[1]))
-            data["porcentaje_de_palabras_clave"].append(float(fragmentos[2][:-2].replace(",", ".")))
-            data["principales_palabras_clave"].append(" ".join(fragmentos[3:]))
+        if linea and linea[0].isnumeric():
+            cluster = int(linea[0])
+            cantidad_palabras = int(linea[1])
+            porcentaje_palabras = float(linea[2][:-2].replace(",", "."))
+            palabras_clave = " ".join(linea[3:])
+            data["cluster"].append(cluster)
+            data["cantidad_de_palabras_clave"].append(cantidad_palabras)
+            data["porcentaje_de_palabras_clave"].append(porcentaje_palabras)
+            data["principales_palabras_clave"].append(palabras_clave)
         elif data["principales_palabras_clave"]:
-            data["principales_palabras_clave"][-1] += " " + " ".join(fragmentos)
+            line = data["principales_palabras_clave"].pop() + " " + " ".join(linea)              
+            data["principales_palabras_clave"].append(line.strip())
 
-    # Crear el DataFrame a partir del diccionario procesado
     df = pd.DataFrame(data)
-
     return df
 
-print(ingest_data())
+#print(ingest_data())
